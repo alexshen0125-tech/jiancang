@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>建仓日报</title>
+<style>
+  :root {
+    --bg: #f6f7f5; --panel: #ffffff; --fg: #1d2420; --muted: #66706a; --line: #e2e6e2; --grid: #e7ebe7;
+    --ok: #1f8a5b; --warn: #b7791f; --bad: #c2412d; --up: #d0342c; --down: #1f8a5b; --accent: #2d5d4b;
+    --serif: "Noto Serif SC", "Songti SC", "STSong", Georgia, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #121614; --panel: #1a201d; --fg: #e8ece9; --muted: #98a39c; --line: #2b332f; --grid: #2b332f;
+      --ok: #4cc38a; --warn: #e0a84a; --bad: #f07a68; --up: #f0665c; --down: #4cc38a; --accent: #8fc7b0; color-scheme: dark; }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 var(--sans); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding-inline: 16px; padding-block: calc(24px + env(safe-area-inset-top, 0px)) calc(40px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 32px; }
+  .num { font-variant-numeric: tabular-nums; }
+  .eyebrow { margin: 0; color: var(--muted); font-size: 12px; letter-spacing: .08em; }
+  h1 { margin: 4px 0 6px; font: 400 30px/1.25 var(--serif); text-wrap: balance; }
+  .lede { margin: 0; max-width: 62ch; }
+  h2 { margin: 0; font-size: 18px; font-weight: 600; }
+  .sub { margin: 0; color: var(--muted); max-width: 70ch; }
+  .sec { display: flex; flex-direction: column; gap: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; }
+
+  .verdict { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 32px; align-items: start; }
+  .vmain { display: flex; flex-direction: column; gap: 12px; }
+  .pill { align-self: flex-start; padding: 3px 12px; border-radius: 999px; font-weight: 600; border: 1px solid currentColor; }
+  .t-建仓 { color: var(--ok); } .t-试仓 { color: var(--warn); } .t-观望 { color: var(--muted); }
+  .score { display: flex; align-items: baseline; gap: 6px; }
+  .score b { font: 400 56px/1 var(--serif); font-variant-numeric: tabular-nums; }
+  .score span { color: var(--muted); }
+  .meter { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .seg { height: 10px; border-radius: 3px; background: var(--grid); }
+  .meter.t-建仓 .on { background: var(--ok); } .meter.t-试仓 .on { background: var(--warn); } .meter.t-观望 .on { background: var(--muted); }
+  .scale { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; gap: 8px; }
+  .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; margin: 0; }
+  .facts div { display: flex; flex-direction: column; gap: 2px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .facts dt { color: var(--muted); font-size: 12px; }
+  .facts dd { margin: 0; font-size: 18px; font-variant-numeric: tabular-nums; }
+  .facts .key dd { font: 400 30px/1.2 var(--serif); font-variant-numeric: tabular-nums; }
+  .flag { margin: 0; grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; padding: 6px 12px 6px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--grid); }
+  .dot.full { background: var(--ok); } .dot.half { background: var(--warn); }
+  .up { color: var(--up); } .down { color: var(--down); }
+
+  .picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .pick { display: flex; flex-direction: column; gap: 10px; }
+  .ptop { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .rank { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .pname { font-size: 18px; font-weight: 600; display: block; }
+  .pmeta { color: var(--muted); font-size: 12px; }
+  .price { font-size: 18px; font-variant-numeric: tabular-nums; }
+  .kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+  .kv div { display: flex; flex-direction: column; }
+  .kv dt { color: var(--muted); font-size: 12px; }
+  .kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .why { margin: 0; color: var(--muted); font-size: 13px; }
+  .buy { margin: 0; padding-top: 8px; border-top: 1px solid var(--line); }
+  .buy.off { color: var(--muted); }
+
+  .sectors { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px 32px; }
+  .cverdict { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+  .fngbar { position: relative; height: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--ok), var(--grid) 50%, var(--bad)); }
+  .fngbar span { position: absolute; top: -4px; width: 4px; height: 18px; border-radius: 2px; background: var(--fg); transform: translateX(-2px); }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); position: sticky; top: env(safe-area-inset-top, 0px); background: var(--bg); z-index: 2; margin-top: -12px; }
+  .tab { appearance: none; border: 0; background: none; color: var(--muted); font: inherit; font-size: 16px; padding: 10px 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+  .tab[aria-selected="true"] { color: var(--fg); font-weight: 600; border-bottom-color: var(--fg); }
+  .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .tab-pill { font-size: 12px; font-weight: 600; padding: 0 8px; border-radius: 999px; border: 1px solid currentColor; }
+  .tab-pill:empty { display: none; }
+  .panel { display: flex; flex-direction: column; gap: 32px; }
+  .news { list-style: none; margin: 0; padding: 0; }
+  .news li { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .news time { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; padding-top: 2px; }
+  .empty { margin: 0; color: var(--muted); }
+  .fail { color: var(--bad); }
+  footer { color: var(--muted); font-size: 12px; display: flex; flex-direction: column; gap: 4px; }
+  footer p { margin: 0; }
+  .sk { display: inline-block; min-width: 3em; height: 1em; border-radius: 4px; background: var(--grid); vertical-align: middle; }
+
+  @media (max-width: 640px) {
+    h1 { font-size: 26px; }
+    .verdict, .cverdict { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+    .score b { font-size: 44px; }
+    .facts .key dd { font-size: 26px; }
+    .news li { grid-template-columns: 76px minmax(0, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">A 股 15 万 · 加密货币 1 万 · 分批建仓</p>
+    <h1>建仓日报</h1>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="切换市场">
+    <button class="tab" role="tab" id="tab-a" data-p="a" aria-controls="p-a" aria-selected="true">A 股<span class="tab-pill" id="tab-a-pill"></span></button>
+    <button class="tab" role="tab" id="tab-c" data-p="crypto" aria-controls="p-c" aria-selected="false">加密货币<span class="tab-pill" id="tab-c-pill"></span></button>
+  </nav>
+
+  <div class="panel" id="p-a" role="tabpanel" aria-labelledby="tab-a">
+  <p class="lede"><span id="l-date"><span class="sk"></span></span> 收盘后的判断：<b id="l-verdict"><span class="sk"></span></b>。今天长线最多投 <b id="l-amt" class="num"><span class="sk"></span></b> 元。</p>
+
+  <section class="card verdict" id="verdict">
+    <div class="vmain">
+      <span class="pill" id="pill">—</span>
+      <div class="score"><b id="score">—</b><span>/ 7 分 · 建仓信号</span></div>
+      <div class="meter" id="meter" role="img" aria-label="建仓信号得分"></div>
+      <div class="scale"><span>≤2 观望</span><span>3–4 试仓（半档）</span><span>≥5 建仓（一档）</span></div>
+    </div>
+    <dl class="facts">
+      <div class="key"><dt>今天长线最多投入（元）</dt><dd id="f-amt">—</dd></div>
+      <div class="key"><dt>一档 = 长线目标 ÷ 6（元）</dt><dd id="f-tranche">—</dd></div>
+      <div><dt>长线目标上限（元）</dt><dd id="f-cap">—</dd></div>
+      <div><dt>短线可用（元）</dt><dd id="f-short">—</dd></div>
+      <p class="flag">额度按计划资金 15 万算，不含实际持仓。</p>
+    </dl>
+  </section>
+
+  <section class="sec" id="dims">
+    <h2>打分依据</h2>
+    <p class="sub">6 个维度，满分 7 分；取不到数据的维度记 0 分。</p>
+    <div class="scroll"><table>
+      <thead><tr><th>维度</th><th class="r">得分</th><th>依据</th></tr></thead>
+      <tbody id="t-dims"></tbody>
+    </table></div>
+  </section>
+
+  <section class="sec" id="picks">
+    <h2>长线候选</h2>
+    <p class="sub">沪深 300 里有 <b id="npass" class="num">—</b> 只过了初筛（市盈率 0–40、ROE ≥10%、净利同比不低于 -10%、近 20 日涨幅不超过 20%），按得分取前 5 只，每个行业最多 1 只。规则筛出的是候选，不是买入指令：买之前先写清买入逻辑和卖出条件。</p>
+    <p class="empty" id="picks-off" hidden>今天是观望日，候选只做观察，不建议买。</p>
+    <div class="picks" id="c-picks"></div>
+  </section>
+
+  <section class="sec" id="market">
+    <h2>大盘</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>指数</th><th class="r">点位</th><th class="r">涨跌</th><th class="r">成交额（亿）</th></tr></thead>
+      <tbody id="t-idx"></tbody>
+    </table></div>
+  </section>
+
+  <section class="sec" id="sectors">
+    <h2>行业板块</h2>
+    <p class="sub">新浪行业分类，按板块平均涨跌幅排出领涨、领跌各 5 个。</p>
+    <div class="sectors">
+      <div class="scroll"><table>
+        <thead><tr><th>领涨板块</th><th class="r">涨跌</th><th>领涨股</th></tr></thead>
+        <tbody id="t-sec-up"></tbody>
+      </table></div>
+      <div class="scroll"><table>
+        <thead><tr><th>领跌板块</th><th class="r">涨跌</th><th class="r">成交额（亿）</th></tr></thead>
+        <tbody id="t-sec-down"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <section class="sec" id="news">
+    <h2>近 24 小时要闻</h2>
+    <p class="sub">东方财富 7×24 快讯里命中政策、宏观关键词的消息，未经人工挑选。</p>
+    <ul class="news" id="l-news"></ul>
+  </section>
+
+  </div>
+
+  <div class="panel" id="p-c" role="tabpanel" aria-labelledby="tab-c" hidden>
+  <p class="lede">恐惧贪婪指数 <b id="c-lede-fng" class="num">—</b>：<b id="c-lede-verdict">—</b>。今天最多投 <b id="c-lede-amt" class="num">—</b> 元。</p>
+  <section class="sec" id="crypto">
+    <h2>加密货币 · 本金 1 万</h2>
+    <p class="sub">只做 BTC、ETH 现货，不加杠杆。按恐惧贪婪指数分档：≤25 买一档（1 万分 4 档，一档 2,500 元），26–50 买半档，51–74 观望，≥75 不买、考虑止盈。每档按 BTC 七成、ETH 三成分。规则是初版。</p>
+    <div class="card cverdict">
+      <div class="vmain">
+        <span class="pill" id="c-pill">—</span>
+        <div class="score"><b id="c-fng">—</b><span>恐惧贪婪指数（0 极度恐惧 – 100 极度贪婪）</span></div>
+        <div class="fngbar"><span id="c-fng-dot"></span></div>
+        <div class="scale"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+      </div>
+      <dl class="facts">
+        <div class="key"><dt>今天最多投入（元）</dt><dd id="c-amt">—</dd></div>
+        <div class="key"><dt>一档（元）</dt><dd id="c-tranche">—</dd></div>
+      </dl>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr><th>币种</th><th class="r">美元价</th><th class="r">人民币价</th><th class="r">24 小时</th><th>200 日均线</th><th class="r">距一年高点</th><th class="r">今天建议（元）</th></tr></thead>
+      <tbody id="t-crypto"></tbody>
+    </table></div>
+  </section>
+
+  </div>
+
+  <section class="sec" id="errs" hidden>
+    <h2>这次没取到的数据</h2>
+    <ul class="news" id="l-errs"></ul>
+  </section>
+
+  <footer>
+    <p>个人规划参考，不构成投资建议。信号和候选都是规则打分，买不买自己拍板。</p>
+    <p>生成于 <span id="gen">—</span>，每个交易日 8:50、15:40 自动更新。数据：腾讯行情、东方财富、中证指数官网、新浪行业；加密货币为 Gate.io 与 alternative.me 恐惧贪婪指数。</p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var fmt = function (v, d) { return v === null || v === undefined || v === '' ? '-' : Number(v).toLocaleString('zh-CN', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 }); };
+  var signed = function (v, d) { return v === null || v === undefined ? '-' : (v > 0 ? '+' : '') + fmt(v, d) + '%'; };
+  var el = function (tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
+  var set = function (id, v) { var e = $(id); if (e) e.textContent = v; };
+  var tone = function (v) { return v > 0 ? 'up' : v < 0 ? 'down' : ''; };
+
+  function render(D) {
+    var s = (D.summary || [])[0];
+    if (s) {
+      set('l-date', s['行情日期']); set('l-verdict', s['结论']); set('l-amt', fmt(s['今日长线额度']));
+      var pill = $('pill'); pill.textContent = s['档位']; pill.className = 'pill t-' + s['档位'];
+      set('score', s['得分']);
+      var m = $('meter'); m.className = 'meter t-' + s['档位']; m.setAttribute('aria-label', '建仓信号 ' + s['得分'] + ' 分，满分 7 分');
+      m.replaceChildren.apply(m, Array.from({ length: 7 }, function (_, i) { return el('span', 'seg' + (i < s['得分'] ? ' on' : '')); }));
+      set('f-amt', fmt(s['今日长线额度'])); set('f-tranche', fmt(s['一档'])); set('f-cap', fmt(s['长线上限'])); set('f-short', fmt(s['短线可用']));
+      set('gen', s['生成时间']);
+      $('picks-off').hidden = s['今日长线额度'] > 0;
+    } else {
+      set('l-date', '—'); set('l-verdict', '今天的结论没有生成'); set('l-amt', '—');
+    }
+
+    var tb = $('t-dims'); tb.replaceChildren();
+    (D.dims || []).forEach(function (r) {
+      var tr = el('tr'), td = el('td');
+      td.append(el('span', 'dot' + (r['得分'] >= r['满分'] ? ' full' : r['得分'] > 0 ? ' half' : '')), document.createTextNode(r['维度']));
+      tr.append(td, el('td', 'r', r['得分'] + ' / ' + r['满分']), el('td', '', r['依据']));
+      tb.appendChild(tr);
+    });
+
+    var box = $('c-picks'); box.replaceChildren();
+    var picks = D.picks || [];
+    if (picks.length) set('npass', picks[0]['初筛通过']);
+    if (!picks.length) box.appendChild(el('p', 'empty', '今天没有取到候选，见页面底部「这次没取到的数据」。'));
+    var budget = s ? s['今日长线额度'] : 0;
+    picks.forEach(function (x) {
+      var c = el('article', 'card pick');
+      var top = el('div', 'ptop'), left = el('div');
+      left.append(el('span', 'rank', '#' + x['排名'] + ' · 得分 ' + x['得分']), el('span', 'pname', x['名称']), el('span', 'pmeta', x['代码'] + ' · ' + x['行业']));
+      top.append(left, el('span', 'price', fmt(x['现价'], 2)));
+      var kv = el('dl', 'kv');
+      [['市盈率', fmt(x['市盈率'], 1)], ['股息率', x['股息率'] === null ? '-' : fmt(x['股息率'], 1) + '%'], ['ROE（年化）', fmt(x['ROE年化'], 1) + '%'],
+       ['净利同比', signed(x['净利同比'], 0)], ['近 20 日', signed(x['近20日涨幅'], 1)], ['一手（元）', fmt(x['一手金额'])]].forEach(function (p) {
+        var d = el('div'); d.append(el('dt', '', p[0]), el('dd', '', p[1])); kv.appendChild(d);
+      });
+      var buy;
+      if (!budget) buy = el('p', 'buy off', '观望日，只观察。');
+      else if (x['可买手数'] > 0) buy = el('p', 'buy', '按今天额度能买 ' + x['可买手数'] + ' 手，约 ' + fmt(x['可买金额']) + ' 元');
+      else buy = el('p', 'buy off', '一手要 ' + fmt(x['一手金额']) + ' 元，超出今天额度。');
+      c.append(top, kv, el('p', 'why', '入选理由：' + x['入选理由']), buy);
+      box.appendChild(c);
+    });
+
+    var ti = $('t-idx'); ti.replaceChildren();
+    (D.indices || []).forEach(function (r) {
+      var tr = el('tr');
+      tr.append(el('td', '', r['指数']), el('td', 'r', fmt(r['点位'], 2)), el('td', 'r ' + tone(r['涨跌幅']), signed(r['涨跌幅'], 2)), el('td', 'r', fmt(r['成交额亿'])));
+      ti.appendChild(tr);
+    });
+
+    var cs = (D.crypto_summary || [])[0];
+    $('crypto').hidden = !cs;
+    if (cs) {
+      var cp = $('c-pill'); cp.textContent = cs['结论']; cp.className = 'pill t-' + cs['档位'];
+      set('c-fng', cs['恐惧贪婪']); $('c-fng-dot').style.left = Math.max(0, Math.min(100, cs['恐惧贪婪'])) + '%';
+      set('c-amt', fmt(cs['今日额度'])); set('c-tranche', fmt(cs['一档']));
+    }
+    var tc = $('t-crypto'); tc.replaceChildren();
+    (D.crypto || []).forEach(function (r) {
+      var tr = el('tr');
+      tr.append(el('td', '', r['币种']), el('td', 'r', fmt(r['美元价'], 2)), el('td', 'r', fmt(r['人民币价'])),
+        el('td', 'r ' + tone(r['24小时涨跌']), signed(r['24小时涨跌'], 2)), el('td', '', r['站上200日线'] ? '上方' : '下方'),
+        el('td', 'r', signed(r['距一年高点'], 1)), el('td', 'r', fmt(r['今日建议投入'])));
+      tc.appendChild(tr);
+    });
+
+    if (cs) {
+      set('c-lede-fng', cs['恐惧贪婪']); set('c-lede-verdict', cs['结论']); set('c-lede-amt', fmt(cs['今日额度']));
+      var tcp = $('tab-c-pill'); tcp.textContent = cs['档位']; tcp.className = 'tab-pill t-' + cs['档位'];
+    }
+    if (s) { var tap = $('tab-a-pill'); tap.textContent = s['档位']; tap.className = 'tab-pill t-' + s['档位']; }
+
+    var sec = D.sectors || [];
+    $('sectors').hidden = !sec.length;
+    var su = $('t-sec-up'), sd = $('t-sec-down'); su.replaceChildren(); sd.replaceChildren();
+    sec.forEach(function (r) {
+      var tr = el('tr');
+      if (r['方向'] === '领涨') {
+        tr.append(el('td', '', r['板块']), el('td', 'r ' + tone(r['涨跌幅']), signed(r['涨跌幅'], 2)), el('td', '', r['领涨股'] + ' ' + signed(r['领涨股涨跌幅'], 1)));
+        su.appendChild(tr);
+      } else {
+        tr.append(el('td', '', r['板块']), el('td', 'r ' + tone(r['涨跌幅']), signed(r['涨跌幅'], 2)), el('td', 'r', fmt(r['成交额亿'])));
+        sd.appendChild(tr);
+      }
+    });
+
+    var list = function (id, rows, a, b, emptyText) {
+      var ul = $(id); ul.replaceChildren();
+      if (!rows.length) { ul.appendChild(el('li', 'empty', emptyText)); return; }
+      rows.forEach(function (r) { var li = el('li'); li.append(el('time', '', r[a]), el('span', '', r[b])); ul.appendChild(li); });
+    };
+    list('l-news', D.news || [], '时间', '标题', '没有命中关键词的快讯。');
+    var errs = D.errors || [];
+    $('errs').hidden = !errs.length;
+    list('l-errs', errs, '模块', '原因', '');
+  }
+
+  function show(which) {
+    var isC = which === 'crypto';
+    $('p-a').hidden = isC; $('p-c').hidden = !isC;
+    $('tab-a').setAttribute('aria-selected', String(!isC)); $('tab-c').setAttribute('aria-selected', String(isC));
+    try { history.replaceState(null, '', isC ? '#crypto' : location.pathname + location.search); } catch (e) {}
+  }
+  document.querySelectorAll('.tab').forEach(function (b) { b.addEventListener('click', function () { show(b.getAttribute('data-p')); window.scrollTo(0, 0); }); });
+  show(location.hash === '#crypto' ? 'crypto' : 'a');
+
+  fetch('data.json?t=' + Date.now(), { cache: 'no-store' })
+    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(render)
+    .catch(function (e) {
+      set('l-date', '—'); set('l-verdict', '数据没有加载出来（' + e.message + '），稍后刷新再试'); set('l-amt', '—');
+    });
+})();
+</script>
+</body>
+</html>
